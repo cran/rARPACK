@@ -1,0 +1,56 @@
+      CHANGES IN rARPACK VERSION 0.5-0
+
+NEW FEATURES
+
+    o Add svds() function to calculate truncated SVD.
+
+BUG FIXES
+
+    o Now sort eigenvalues in decreasing order.
+    o Rename eigs.sym() to eigs_sym() to avoid confusion.
+    o Fix a matrix out-of-bound error.
+
+
+
+
+
+      CHANGES IN rARPACK VERSION 0.4-0
+
+NEW FEATURES
+
+    o Implement shift-and-invert mode for all supported eigen problems.
+
+BUG FIXES
+
+    o Update arpack-ng to 3.1.4
+
+
+
+
+
+      CHANGES IN rARPACK VERSION 0.3-0
+
+NEW FEATURES
+
+    o Now eigs() supports real symmetric matrices.
+
+
+
+
+
+      CHANGES IN rARPACK VERSION 0.2-0
+
+NEW FEATURES
+
+    o Now eigs() supports sparse real nonsymmetric matrices of the class "dgCMatrix",
+      defined in the Matrix package.
+
+
+
+
+
+      CHANGES IN rARPACK VERSION 0.1-0
+
+NEW FEATURES
+
+    o Initial version. For now eigs() supports dense real nonsymmetric matrices.
