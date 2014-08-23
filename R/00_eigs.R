@@ -10,14 +10,16 @@
 ##' 
 ##' Currently \code{eigs()} supports matrices of class "matrix"
 ##' (the most commonly used matrix type),
-##' "dgCMatrix" (sparse matrix) and "dsyMatrix" (symmetric matrix).
-##' The latter two classes are defined in the
+##' "dgeMatrix" (general matrix, equivalent to "matrix"),
+##' "dgCMatrix" (sparse matrix), "dgRMatrix" (sparse matrix, row oriented)
+##' and "dsyMatrix" (symmetric matrix).
+##' All classes above except "matrix" are defined in the
 ##' \pkg{Matrix} package.
 ##' 
 ##' \code{eigs_sym()} assumes the matrix is symmetric,
 ##' and only the lower triangle (or upper triangle, which is
 ##' controlled by the argument \code{lower}) is used for
-##' computation, which in general reduces the workload.
+##' computation, which in some cases reduces the workload.
 ##' Notice that \code{eigs_sym()} only applies to "ordinary" matrix,
 ##' i.e., of class "matrix". If you want to calculate
 ##' eigen values/vectors of matrix of "dsyMatrix" class, use
@@ -54,7 +56,8 @@
 ##'             When k is odd, compute more from the high and then from the low end.}
 ##' }
 ##'
-##' \code{eigs()} with matrix type "matrix" and "dgCMatrix" can use "LM",
+##' \code{eigs()} with matrix type "matrix", "dgeMatrix", "dgCMatrix"
+##' and "dgRMatrix" can use "LM",
 ##' "SM", "LR", "SR", "LI" and "SI".
 ##' 
 ##' \code{eigs_sym()} and \code{eigs()} with matrix type "dsyMatrix"
@@ -80,9 +83,11 @@
 ##' \describe{
 ##' \item{\code{ncv}}{Number of Lanzcos basis vectors to use. More vectors
 ##'                   will result in faster convergence, but with greater
-##'                   memory use. \code{ncv} must be satisfy
-##'                   \eqn{k+2\le ncv \le n}{k+2 <= ncv <= n}.
-##'                   Default is \code{min(n-1, max(2*k+1, 20))}.}
+##'                   memory use. For general matrix, \code{ncv} must satisfy
+##'                   \eqn{k+2\le ncv \le n}{k+2 <= ncv <= n}, and
+##'                   for symmetric matrix, the constraint is
+##'                   \eqn{k < ncv \le n}{k < ncv <= n}.
+##'                   Default is \code{min(n, max(2*k+1, 20))}.}
 ##' \item{\code{tol}}{Precision parameter. Default is 1e-10.}
 ##' \item{\code{maxitr}}{Maximum number of iterations. Default is 1000.}
 ##' \item{\code{retvec}}{Whether to compute eigenvectors. If FALSE,
@@ -128,24 +133,30 @@ eigs <- function(A, k, which = "LM", sigma = NULL, opts = list(), ...)
     UseMethod("eigs");
 
 ##' @rdname eigs
-##' @method eigs matrix
-##' @S3method eigs matrix
 ##' @export
 eigs.matrix <- function(A, k, which = "LM", sigma = NULL,
                         opts = list(), ...)
-    eigs.real_nonsym(A, k, which, sigma, opts, ..., mattype = "matrix");
+    eigs.real_gen(A, k, which, sigma, opts, ..., mattype = "matrix");
 
 ##' @rdname eigs
-##' @method eigs dgCMatrix
-##' @S3method eigs dgCMatrix
+##' @export
+eigs.dgeMatrix <- function(A, k, which = "LM", sigma = NULL,
+                           opts = list(), ...)
+    eigs.real_gen(A, k, which, sigma, opts, ..., mattype = "dgeMatrix");
+
+##' @rdname eigs
 ##' @export
 eigs.dgCMatrix <- function(A, k, which = "LM", sigma = NULL,
                            opts = list(), ...)
-    eigs.real_nonsym(A, k, which, sigma, opts, ..., mattype = "dgCMatrix");
+    eigs.real_gen(A, k, which, sigma, opts, ..., mattype = "dgCMatrix");
 
 ##' @rdname eigs
-##' @method eigs dsyMatrix
-##' @S3method eigs dsyMatrix
+##' @export
+eigs.dgRMatrix <- function(A, k, which = "LM", sigma = NULL,
+                           opts = list(), ...)
+    eigs.real_gen(A, k, which, sigma, opts, ..., mattype = "dgRMatrix");
+
+##' @rdname eigs
 ##' @export
 eigs.dsyMatrix <- function(A, k, which = "LM", sigma = NULL,
                            opts = list(), ...)
@@ -156,7 +167,7 @@ eigs.dsyMatrix <- function(A, k, which = "LM", sigma = NULL,
 ##' @rdname eigs
 ##' @usage eigs_sym(A, k, which = "LM", sigma = NULL, opts = list(),
 ##'   ..., lower = TRUE)
-##' @export eigs_sym
+##' @export
 eigs_sym <- function(A, k, which = "LM", sigma = NULL, opts = list(), ..., lower = TRUE)
 {
     if(is.matrix(A))
@@ -167,3 +178,7 @@ eigs_sym <- function(A, k, which = "LM", sigma = NULL, opts = list(), ..., lower
         stop("unsupported matrix type");
     }
 }
+
+# Matrix types
+MATTYPES = c("matrix" = 0L, "dgeMatrix" = 1L, "dsyMatrix" = 2L,
+             "dgCMatrix" = 3L, "dgRMatrix" = 4L);

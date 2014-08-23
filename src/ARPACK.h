@@ -1,5 +1,5 @@
-#ifndef DO_EIGS_H
-#define DO_EIGS_H
+#ifndef ARPACK_H
+#define ARPACK_H
 
 #include <Rcpp.h>
 // R_ext/BLAS.h also includes R_ext/RS.h,
@@ -56,7 +56,7 @@ void F77_NAME(dneupdwr)(int *rvec, int *howmnyi, int *select, double *dr, double
 
 // Map char *which to enum type
 // WHICH_LM is the default if unusual case happens
-inline int whichenum(char *which)
+inline int whichenum(const char *which)
 {
     switch(which[0])
     {
@@ -102,7 +102,7 @@ inline int whichenum(char *which)
 
 
 // C++ Wrapper of the functions above
-inline void saupd(int& ido, char bmat, int n, char* which,
+inline void saupd(int& ido, char bmat, int n, const char* which,
                   int nev, double& tol, double resid[],
                   int ncv, double v[], int ldv,
                   int iparam[], int ipntr[], double workd[],
@@ -120,7 +120,7 @@ inline void saupd(int& ido, char bmat, int n, char* which,
 
 inline void seupd(bool rvec, char howmny, double d[],
                   double z[], int ldz, double sigma, char bmat,
-                  int n, char *which, int nev, double tol,
+                  int n, const char *which, int nev, double tol,
                   double resid[], int ncv, double v[], int ldv,
                   int iparam[], int ipntr[], double workd[], double workl[],
                   int lworkl, int& info)
@@ -143,7 +143,7 @@ inline void seupd(bool rvec, char howmny, double d[],
     delete [] select_pass;
 }
 
-inline void naupd(int& ido, char bmat, int n, char* which,
+inline void naupd(int& ido, char bmat, int n, const char* which,
                   int nev, double& tol, double resid[],
                   int ncv, double v[], int ldv,
                   int iparam[], int ipntr[], double workd[],
@@ -161,7 +161,7 @@ inline void naupd(int& ido, char bmat, int n, char* which,
 
 inline void neupd(bool rvec, char howmny, double dr[], double di[],
                   double z[], int ldz, double sigmar, double sigmai, double workev[],
-                  char bmat, int n, char *which, int nev, double tol,
+                  char bmat, int n, const char *which, int nev, double tol,
                   double resid[], int ncv, double v[], int ldv, int iparam[],
                   int ipntr[], double workd[], double workl[], int lworkl, int& info)
 {
@@ -182,38 +182,6 @@ inline void neupd(bool rvec, char howmny, double dr[], double di[],
     delete [] select_pass;
 }
 
-
-// Prototype of function to calculate
-// matrix(n, n) * vector(n) product
-// A: an n*n matrix, may be sparse
-// x_in: an array of length n
-// y_out: result of A * x_in
-// data: additional data passed to function
-typedef void (*Mvfun)(SEXP mat, double *x_in, double *y_out,
-                      int m, int n, void *data);
-
-// Common function to calculate eigen values/vectors
-// mat_v_prod and data should be implemented according to
-// the problem (whether matrix is dense or sparse, for example)
-SEXP do_eigs_nonsym(SEXP A_mat_r, SEXP n_scalar_r, SEXP k_scalar_r,
-                    SEXP params_list_r,
-                    Mvfun mat_v_prod, void *data);
-
-SEXP do_eigs_sym(SEXP A_mat_r, SEXP n_scalar_r, SEXP k_scalar_r,
-                 SEXP params_list_r,
-                 Mvfun mat_v_prod, void *data);
-
-// Common function to calculate singular values/vectors
-SEXP do_svds_nonsym(SEXP A_mat_r, SEXP m_scalar_r, SEXP n_scalar_r,
-                    SEXP k_scalar_r, SEXP nu_scalar_r, SEXP nv_scalar_r,
-                    SEXP params_list_r, Mvfun mat_v_prod, Mvfun mat_t_v_prod,
-                    void *data);
-
-SEXP do_svds_sym(SEXP A_mat_r, SEXP n_scalar_r,
-                 SEXP k_scalar_r, SEXP nu_scalar_r, SEXP nv_scalar_r,
-                 SEXP params_list_r, Mvfun mat_v_prod,
-                 void *data);
-
 // Warning and error messages
 void dsaupd_warn(int info);
 void dsaupd_error(int info);
@@ -223,4 +191,4 @@ void dnaupd_error(int info);
 void dneupd_warn(int info);
 void dneupd_error(int info);
 
-#endif // DO_EIGS_H
+#endif // ARPACK_H

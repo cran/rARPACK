@@ -1,5 +1,5 @@
-eigs.real_nonsym <- function(A, k, which, sigma, opts = list(), ...,
-                             mattype = c("matrix", "dgCMatrix"))
+eigs.real_gen <- function(A, k, which, sigma, opts = list(), ...,
+                          mattype = c("matrix", "dgeMatrix", "dgCMatrix", "dgRMatrix"))
 {
     n = nrow(A);
     # Check whether 'A' is a square matrix
@@ -8,6 +8,30 @@ eigs.real_nonsym <- function(A, k, which, sigma, opts = list(), ...,
     # eigs() is not suitable for small matrices
     if (n < 3)
         stop("dimension of 'A' must be at least 3");
+    
+    # If >= n-1 eigenvalues are requested, call eigen() instead,
+    # and give a warning
+    if (k == n - 1)
+    {
+        res = eigen(A, only.values = identical(opts$retvec, FALSE))
+        exclude = switch(which,
+                         LM = n,
+                         SM = 1,
+                         LR = which.min(Re(res$values)),
+                         SR = which.max(Re(res$values)),
+                         LI = which.min(abs(Im(res$values))),
+                         SI = which.max(abs(Im(res$values))))
+        warning("(n-1) eigenvalues are requested, eigen() is used instead")
+        return(list(values = res$values[-exclude],
+                    vectors = res$vectors[, -exclude],
+                    nconv = n, niter = 0))
+    }
+    if (k == n)
+    {
+        res = eigen(A, only.values = identical(opts$retvec, FALSE))
+        warning("all eigenvalues are requested, eigen() is used instead")
+        return(c(res, nconv = n, niter = 0))
+    }
     
     # Matrix will be passed to C++, so we need to check the type.
     # ARPACK only supports matrices in float or double, so we need
@@ -39,7 +63,7 @@ eigs.real_nonsym <- function(A, k, which, sigma, opts = list(), ...,
     
     # Arguments to be passed to ARPACK
     arpack.param = list(which = which,
-                        ncv = min(n - 1, max(2 * k + 1, 20)),
+                        ncv = min(n, max(2 * k + 1, 20)),
                         tol = 1e-10,
                         maxitr = 1000,
                         retvec = TRUE,
@@ -62,17 +86,12 @@ eigs.real_nonsym <- function(A, k, which, sigma, opts = list(), ...,
     if (arpack.param$ncv < k + 2 | arpack.param$ncv > n)
         stop("'opts$ncv' must be >= k+2 and <= nrow(A)");
     
-    # Different names of calls according to the type of matrix
-    funname = switch(mattype,
-                     matrix = "den_real_nonsym",
-                     dgCMatrix = "sparse_real_nonsym",
-                     stop("invalid value of 'mattype'"));
-    
-    # Calling the C++ function
-    res = .Call(funname, A,
+    # Call the C++ function
+    res = .Call("eigs_gen",
+                A,
                 as.integer(n), as.integer(k),
                 as.list(arpack.param),
-                as.logical(sigmareal),
+                as.integer(MATTYPES[mattype]),
                 PACKAGE = "rARPACK");
     
     # When workmode == 3 and sigmai != 0, we need to transform back

@@ -7,6 +7,15 @@ svds.real_sym <- function(A, k, nu = k, nv = k, opts = list(), ...,
     if (n < 3)
         stop("nrow(A) and ncol(A) should be at least 3");
     
+    # If all singular values are requested, call svd() instead,
+    # and give a warning
+    if (k == n)
+    {
+        warning("all singular values are requested, svd() is used instead")
+        return(c(svd(A, nu = nu, nv = nv),
+                 nconv = n, niter = 0))
+    }
+    
     # Matrix will be passed to C++, so we need to check the type.
     # ARPACK only supports matrices in float or double, so we need
     # to do the conversion if A is stored other than double.
@@ -19,15 +28,15 @@ svds.real_sym <- function(A, k, nu = k, nv = k, opts = list(), ...,
     }
     
     # Check the value of 'k'
-    if (k <= 0 | k >= n - 1)
-        stop("'k' must satisfy 0 < k < min(nrow(A), ncol(A)) - 1.\nTo calculate all singular values, try svd()");
+    if (k <= 0 | k >= n)
+        stop("'k' must satisfy 0 < k < min(nrow(A), ncol(A)).\nTo calculate all singular values, try svd()");
     
     # Check the values of 'nu' and 'nv'
     if (nu < 0 | nv < 0 | nu > k | nv > k)
         stop("'nu' and 'nv' must satisfy 0 <= nu <= k and 0 <= nv <= k");
     
     # Arguments to be passed to ARPACK
-    arpack.param = list(ncv = min(n - 1, max(2 * k + 1, 20)),
+    arpack.param = list(ncv = min(n, max(2 * k + 1, 20)),
                         tol = 1e-10,
                         maxitr = 1000);
     
@@ -35,21 +44,16 @@ svds.real_sym <- function(A, k, nu = k, nv = k, opts = list(), ...,
     arpack.param[names(opts)] = opts;
     
     # Check the value of 'ncv'
-    if (arpack.param$ncv < k + 2 | arpack.param$ncv > n)
-        stop("'opts$ncv' must be >= k+2 and <= min(nrow(A), ncol(A))");
+    if (arpack.param$ncv <= k | arpack.param$ncv > n)
+        stop("'opts$ncv' must be > k and <= min(nrow(A), ncol(A))");
     
-    # Different names of calls according to the type of matrix
-    funname = switch(mattype,
-                     dsyMatrix = "den_real_sym_svd",
-                     stop("invalid matrix type"));
-    
-    # Calling the C++ function
-    res = .Call(funname,
-                A@x,
+    # Call the C++ function
+    res = .Call("svds_sym",
+                A,
                 as.integer(n),
                 as.integer(k), as.integer(nu), as.integer(nv),
                 as.list(arpack.param),
-                as.logical(A@uplo == "L"),
+                as.integer(MATTYPES[mattype]),
                 PACKAGE = "rARPACK");
     
     return(res);

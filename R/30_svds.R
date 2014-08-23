@@ -8,9 +8,12 @@
 ##' since it only contains a subset of the whole singular triplets.
 ##' 
 ##' Currently \code{svds()} supports matrices of class "matrix",
-##' "dgCMatrix" and "dsyMatrix". The latter two classes are defined
-##' in the \pkg{Matrix} package, representing sparse matrix and
-##' symmetric matrix respectively. Note that when \code{A} is symmetric,
+##' "dgeMatrix", "dgCMatrix", "dgRMatrix" and "dsyMatrix". 
+##' All classes above except "matrix" are defined
+##' in the \pkg{Matrix} package, representing general matrix,
+##' sparse matrix (column oriented), sparse matrix (row oriented)
+##' and symmetric matrix respectively.
+##' Note that when \code{A} is symmetric,
 ##' SVD reduces to eigen decomposition, so you may consider using
 ##' \code{\link{eigs}()} instead.
 ##' 
@@ -31,9 +34,9 @@
 ##' \item{\code{ncv}}{Number of Lanzcos basis vectors to use. More vectors
 ##'                   will result in faster convergence, but with greater
 ##'                   memory use. \code{ncv} must be satisfy
-##'                   \eqn{k+1 < ncv \le p}{k+1 < ncv <= p} where
+##'                   \eqn{k < ncv \le p}{k < ncv <= p} where
 ##'                   \code{p = min(m, n)}.
-##'                   Default is \code{min(p-1, max(2*k+1, 20))}.}
+##'                   Default is \code{min(p, max(2*k+1, 20))}.}
 ##' \item{\code{tol}}{Precision parameter. Default is 1e-10.}
 ##' \item{\code{maxitr}}{Maximum number of iterations. Default is 1000.}
 ##' }
@@ -69,22 +72,26 @@ svds <- function(A, k, nu = k, nv = k, opts = list(), ...)
     UseMethod("svds");
 
 ##' @rdname svds
-##' @method svds matrix
-##' @S3method svds matrix
 ##' @export
 svds.matrix <- function(A, k, nu = k, nv = k, opts = list(), ...)
-    svds.real_nonsym(A, k, nu, nv, opts, ..., mattype = "matrix");
+    svds.real_gen(A, k, nu, nv, opts, ..., mattype = "matrix");
 
 ##' @rdname svds
-##' @method svds dgCMatrix
-##' @S3method svds dgCMatrix
+##' @export
+svds.dgeMatrix <- function(A, k, nu = k, nv = k, opts = list(), ...)
+    svds.real_gen(A, k, nu, nv, opts, ..., mattype = "dgeMatrix");
+
+##' @rdname svds
 ##' @export
 svds.dgCMatrix <- function(A, k, nu = k, nv = k, opts = list(), ...)
-    svds.real_nonsym(A, k, nu, nv, opts, ..., mattype = "dgCMatrix");
+    svds.real_gen(A, k, nu, nv, opts, ..., mattype = "dgCMatrix");
 
 ##' @rdname svds
-##' @method svds dsyMatrix
-##' @S3method svds dsyMatrix
+##' @export
+svds.dgRMatrix <- function(A, k, nu = k, nv = k, opts = list(), ...)
+    svds.real_gen(A, k, nu, nv, opts, ..., mattype = "dgRMatrix");
+
+##' @rdname svds
 ##' @export
 svds.dsyMatrix <- function(A, k, nu = k, nv = k, opts = list(), ...)
     svds.real_sym(A, k, nu, nv, opts, ..., mattype = "dsyMatrix");

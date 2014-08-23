@@ -10,6 +10,17 @@ eigs.real_sym <- function(A, k, which, sigma, opts = list(), ...,
     if (n < 3)
         stop("dimension of 'A' must be at least 3");
     
+    # If all eigenvalues are requested, call eigen() instead,
+    # and give a warning
+    if (k == n)
+    {
+        warning("all eigenvalues are requested, eigen() is used instead")
+        return(c(eigen(if(lower) A else t(A),
+                       symmetric = TRUE,
+                       only.values = identical(opts$retvec, FALSE)),
+                 nconv = n, niter = 0))
+    }
+    
     # Matrix will be passed to C++, so we need to check the type.
     # ARPACK only supports matrices in float or double, so we need
     # to do the conversion if A is stored other than double.
@@ -21,8 +32,8 @@ eigs.real_sym <- function(A, k, which, sigma, opts = list(), ...,
         mode(A) = "double";
     }
     # Check the value of 'k'
-    if (k <= 0 | k >= n - 1)
-        stop("'k' must satisfy 0 < k < nrow(A) - 1.\nTo calculate all eigenvalues, try eigen()");
+    if (k <= 0 | k >= n)
+        stop("'k' must satisfy 0 < k < nrow(A)");
     
     # Check sigma
     # workmode == 1: ordinary
@@ -39,7 +50,7 @@ eigs.real_sym <- function(A, k, which, sigma, opts = list(), ...,
     
     # Arguments to be passed to ARPACK
     arpack.param = list(which = which,
-                        ncv = min(n - 1, max(2 * k + 1, 20)),
+                        ncv = min(n, max(2 * k + 1, 20)),
                         tol = 1e-10,
                         maxitr = 1000,
                         retvec = TRUE,
@@ -58,28 +69,17 @@ eigs.real_sym <- function(A, k, which, sigma, opts = list(), ...,
     arpack.param[names(opts)] = opts;
     
     # Check the value of 'ncv'
-    if (arpack.param$ncv < k + 2 | arpack.param$ncv > n)
+    if (arpack.param$ncv <= k | arpack.param$ncv > n)
         stop("'opts$ncv' must be > k and <= nrow(A)");
     
-    # Different arguments according to the type of matrix
-    if(mattype == "matrix")
-    {
-        res = .Call("den_real_sym",
-                    A,
-                    as.integer(n), as.integer(k),
-                    as.list(arpack.param),
-                    as.logical(lower),
-                    PACKAGE = "rARPACK");
-    } else if(mattype == "dsyMatrix") {
-        res = .Call("den_real_sym",
-                    A@x,
-                    as.integer(n), as.integer(k),
-                    as.list(arpack.param),
-                    as.logical(A@uplo == "L"),
-                    PACKAGE = "rARPACK");
-    } else {
-        stop("invalid value of 'mattype'");
-    }
+    # Call the C++ function
+    res = .Call("eigs_sym",
+                A,
+                as.integer(n), as.integer(k),
+                as.list(arpack.param),
+                as.logical(lower),
+                as.integer(MATTYPES[mattype]),
+                PACKAGE = "rARPACK");
     
     return(res);
 }
