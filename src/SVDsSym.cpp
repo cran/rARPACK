@@ -1,93 +1,77 @@
-#include <RcppEigen.h>
-#include "ARPACK.h"
-#include "EigsSym.h"
-#include "MatOp.h"
+#include "SVDsSym.h"
 
-using Rcpp::as;
-using Rcpp::wrap;
+SVDsSym::SVDsSym(int n_, int k_, int nu_, int nv_, int ncv_, MatOp *op_,
+                 double tol_, int maxitr_) :
+    EigsSym(n_, k_, ncv_, op_, "LM", 1L, 'I', tol_, maxitr_),
+    nu(nu_), nv(nv_)
+{}
 
-// For symmetric matrices, svds() is equivalent to eigs(),
-// so many steps can be simplified.
-//
-// Main function to calculate real, symmetric SVD
-SEXP do_svds_sym(MatOp *op, SEXP n_scalar_r, SEXP k_scalar_r,
-                 SEXP nu_scalar_r, SEXP nv_scalar_r,
-                 SEXP params_list_r)
+void SVDsSym::compute()
 {
-BEGIN_RCPP
-
-    // We will use EigsSym to calculate the results,
-    // but the parameters list is slightly different between
-    // eigs() and svds().
-
-    // Retrieve parameters
-    Rcpp::List params_svds(params_list_r);
-    int n = INTEGER(n_scalar_r)[0];
-    int k = INTEGER(k_scalar_r)[0];
-    int ncv = as<int>(params_svds["ncv"]);
-    std::string which = "LM";
-    int workmode = 1;
-    char bmat = 'I';
-    double tol = as<double>(params_svds["tol"]);
-    int maxitr = as<int>(params_svds["maxitr"]);
-    // Whether to calculate singular vectors or not.
-    int nu = INTEGER(nu_scalar_r)[0];
-    int nv = INTEGER(nv_scalar_r)[0];
-    bool rvec = (nu > 0) | (nv > 0);
-
-    EigsSym eig(n, k, ncv, op, which, workmode,
-                bmat, tol, maxitr);
-    eig.update();
-    Rcpp::List ret = eig.extract(rvec);
-
-    int nconv = as<int>(ret["nconv"]);
-    if (nconv < k)
-        ::Rf_warning("only %d singular values converged, less than k", nconv);
-    nu = nu > nconv ? nconv : nu;
-    nv = nv > nconv ? nconv : nv;
-
-    // Currently ret has components of values, vectors, nconv
-    // and niter, while what we need is d, u, v, nconv and niter,
-    // so we first insert the v matrix into the list, and then
-    // change the list names.
-    if (!rvec)
-    {
-        ret.insert(2, R_NilValue);
-    } else {
-        // At least one of nu and nv are not zero
-        if (nu != 0)
-        {
-            Rcpp::NumericMatrix u = ret["vectors"];
-            if (nv == 0)
-                // nu != 0, nv == 0
-                ret.insert(2, R_NilValue);
-            else {
-                // nu != 0, nv != 0
-                Rcpp::NumericMatrix v(n, nv);
-                // In SVD, V == U
-                std::copy(u.begin(),
-                          u.begin() + nv * n,
-                          v.begin());
-                ret.insert(2, v);
-            }
-            // u.erase(start, end) removes u[start <= i < end]
-            u.erase(nu * n, nconv * n);
-        } else {
-            // nu == 0, nv != 0
-            Rcpp::NumericMatrix u = ret["vectors"];
-            Rcpp::NumericMatrix v(n, nv);
-            std::copy(u.begin(),
-                      u.begin() + nv * n,
-                      v.begin());
-            ret["vectors"] = R_NilValue;
-            ret.insert(2, v);
-        }
-    }
-    ret.names() = Rcpp::CharacterVector::create("d", "u", "v",
-                                                "nconv", "niter");
-
-    return ret;
-
-END_RCPP
+    bool rvec = (nu > 0) || (nv > 0);
+    EigsSym::compute(rvec);
 }
 
+Rcpp::RObject SVDsSym::extractEigenvectors(int num)
+{
+    if(num <= 0)
+        return R_NilValue;
+    
+    int nconv = iparam[5 - 1];
+    if(num > nconv)  num = nconv;
+    
+    Rcpp::NumericMatrix mat(n, num);
+    for(int i = 0; i < num; i++)
+    {
+        copy_column(eigV, dind[i], mat, i);
+    }
+    
+    return mat;
+}
+
+Rcpp::List SVDsSym::extract()
+{
+    // Obtain 'nconv' converged singular values
+    int nconv = iparam[5 - 1];
+    // 'niter' number of iterations
+    int niter = iparam[9 - 1];
+
+    if(nconv <= 0)
+    {
+        ::Rf_warning("no converged singular values found");
+        return returnResult(R_NilValue, R_NilValue, R_NilValue,
+                            Rcpp::wrap(nconv), Rcpp::wrap(niter));
+    }
+    
+    if(nconv < nev)
+        ::Rf_warning("only %d singular values converged, less than k = %d",
+                     nconv, nev);
+    
+    // Calculate singular values
+    eigd.erase(nconv, eigd.length());
+    // Sort singular values in decreasing order
+    dind = sort_with_order<ABSDESCEND>(eigd);
+    dval = eigd;
+    
+    // Copy singular vectors
+    Rcpp::RObject U = extractEigenvectors(nu);
+    Rcpp::RObject V = extractEigenvectors(nv);
+    
+    // We need to make sure that singular values are nonnegative,
+    // so move the sign to matV.
+    for(int i = 0; i < nconv; i++)
+    {
+        if(dval[i] < 0)
+        {
+            dval[i] = -dval[i];
+            if(i < nv)
+            {
+                SEXP Vdata = V;
+                Rcpp::NumericMatrix matV(Vdata);
+                matV(Rcpp::_, i) = -matV(Rcpp::_, i);
+            }
+        }
+    }
+
+    return returnResult(dval, U, V, Rcpp::wrap(nconv), Rcpp::wrap(niter));
+}

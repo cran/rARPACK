@@ -1,30 +1,39 @@
-##' (Truncated) Singular Value Decomposition of a Matrix
+##' Find the Largest k Singular Values/Vectors of a Matrix
 ##'
 ##' @description
-##' Given an \code{m} by \code{n} matrix \code{A},
-##' function \code{svds()} can find its largest \code{k}
+##' Given an \eqn{m} by \eqn{n} matrix \eqn{A},
+##' function \code{svds()} can find its largest \eqn{k}
 ##' singular values and the corresponding singular vectors.
-##' It's also called the truncated singular value decomposition
+##' It is also called the Truncated Singular Value Decomposition
 ##' since it only contains a subset of the whole singular triplets.
 ##' 
-##' Currently \code{svds()} supports matrices of class "matrix",
-##' "dgeMatrix", "dgCMatrix", "dgRMatrix" and "dsyMatrix". 
-##' All classes above except "matrix" are defined
-##' in the \pkg{Matrix} package, representing general matrix,
-##' sparse matrix (column oriented), sparse matrix (row oriented)
-##' and symmetric matrix respectively.
-##' Note that when \code{A} is symmetric,
+##' Currently \code{svds()} supports matrices of the following classes:
+##' 
+##' \tabular{ll}{
+##'   \code{matrix}     \tab The most commonly used matrix type,
+##'                          defined in \strong{base} package.\cr
+##'   \code{dgeMatrix}  \tab General matrix, equivalent to \code{matrix},
+##'                          defined in \strong{Matrix} package.\cr
+##'   \code{dgCMatrix}  \tab Column oriented sparse matrix, defined in
+##'                          \strong{Matrix} package.\cr
+##'   \code{dgRMatrix}  \tab Row oriented sparse matrix, defined in
+##'                          \strong{Matrix} package.\cr
+##'   \code{dsyMatrix}  \tab Symmetrix matrix, defined in \strong{Matrix}
+##'                          package.
+##' }
+##'
+##' Note that when \eqn{A} is symmetric,
 ##' SVD reduces to eigen decomposition, so you may consider using
 ##' \code{\link{eigs}()} instead.
 ##' 
-##' @param A The matrix whose SVD is to be computed.
+##' @param A The matrix whose truncated SVD is to be computed.
 ##' @param k Number of singular values requested.
 ##' @param nu Number of left singular vectors to be computed. This must
 ##'           be between 0 and \code{k}.
 ##' @param nv Number of right singular vectors to be computed. This must
 ##'           be between 0 and \code{k}.
 ##' @param opts Control parameters related to the computing
-##'             algorithm. See Details below.
+##'             algorithm. See \strong{Details} below.
 ##' @param \dots Currently not used.
 ##'
 ##' @details The \code{opts} argument is a list that can supply any of the
@@ -59,32 +68,50 @@
 ##' @rdname svds
 ##' @keywords array
 ##' @examples
-##' m = 100;
-##' n = 20;
-##' k = 5;
-##' set.seed(111);
-##' A = matrix(rnorm(m * n), m);
-##' svds(A, k);
-##' svds(A, k, nu = 0, nv = 3);
+##' m = 100
+##' n = 20
+##' k = 5
+##' set.seed(111)
+##' A = matrix(rnorm(m * n), m)
+##' 
+##' svds(A, k)
+##' svds(t(A), k, nu = 0, nv = 3)
+##' 
+##' ## Sparse matrices
+##' library(Matrix)
+##' A[sample(m * n, m * n / 2)] = 0
+##' Asp1 = as(A, "dgCMatrix")
+##' Asp2 = as(A, "dgRMatrix")
+##' 
+##' svds(Asp1, k)
+##' svds(Asp2, k, nu = 0, nv = 0)
 ##'
-##' ### more examples in examples/svds.R ###
 svds <- function(A, k, nu = k, nv = k, opts = list(), ...)
     UseMethod("svds");
 
 ##' @rdname svds
 ##' @export
 svds.matrix <- function(A, k, nu = k, nv = k, opts = list(), ...)
-    svds.real_gen(A, k, nu, nv, opts, ..., mattype = "matrix");
+{
+    fun = if(isSymmetric(A)) svds.real_sym else svds.real_gen;
+    fun(A, k, nu, nv, opts, ..., mattype = "matrix");
+}
 
 ##' @rdname svds
 ##' @export
 svds.dgeMatrix <- function(A, k, nu = k, nv = k, opts = list(), ...)
-    svds.real_gen(A, k, nu, nv, opts, ..., mattype = "dgeMatrix");
+{
+    fun = if(isSymmetric(A)) svds.real_sym else svds.real_gen;
+    fun(A, k, nu, nv, opts, ..., mattype = "dgeMatrix");
+}
 
 ##' @rdname svds
 ##' @export
 svds.dgCMatrix <- function(A, k, nu = k, nv = k, opts = list(), ...)
-    svds.real_gen(A, k, nu, nv, opts, ..., mattype = "dgCMatrix");
+{
+    fun = if(isSymmetric(A)) svds.real_sym else svds.real_gen;
+    fun(A, k, nu, nv, opts, ..., mattype = "dgCMatrix");
+}
 
 ##' @rdname svds
 ##' @export

@@ -1,5 +1,5 @@
-#ifndef MATOPDGCMATRIX_H
-#define MATOPDGCMATRIX_H
+#ifndef MATOP_SPARSEMATRIX_H
+#define MATOP_SPARSEMATRIX_H
 
 #include <RcppEigen.h>
 #include "MatOp.h"
@@ -34,7 +34,8 @@ private:
     MapVec y_vec;
 public:
     // Constructor
-    MatOp_sparseMatrix(SEXP mat_, double sigmar_ = 0, double sigmai_ = 0,
+    MatOp_sparseMatrix(SEXP mat_, int m_, int n_,
+                       double sigmar_ = 0, double sigmai_ = 0,
                        bool needSolve_ = false);
     // y_out = A * x_in
     void prod(double *x_in, double *y_out);
@@ -48,18 +49,14 @@ public:
 
 
 template<int Storage>
-MatOp_sparseMatrix<Storage>::MatOp_sparseMatrix(SEXP mat_, double sigmar_, double sigmai_,
-                                                bool needSolve_) :
+MatOp_sparseMatrix<Storage>::MatOp_sparseMatrix(
+    SEXP mat_, int m_, int n_,
+    double sigmar_, double sigmai_, bool needSolve_
+    ) :
+    MatOp(m_, n_, sigmar_, sigmai_, true, needSolve_),
     A(as<MapSpMat>(mat_)),
     x_vec(NULL, 1), y_vec(NULL, 1)
 {
-    m = A.rows();
-    n = A.cols();
-    sigmar = sigmar_;
-    sigmai = sigmai_;
-    canTprod = true;
-    canSolve = needSolve_;
-
     if(!needSolve_)  return;
 
     if(m != n)  return;
@@ -111,7 +108,7 @@ void MatOp_sparseMatrix<Storage>::shiftSolve(double *x_in, double *y_out)
     if(m != n)
         Rcpp::stop("matrix must be square");
     if(!canSolve)
-        Rcpp::stop("this matrix doesn't support solving linear equation");
+        Rcpp::stop("this matrix does not support solving linear equation");
 
     if(fabs(sigmai) < 1e-17)
     {
@@ -128,5 +125,8 @@ void MatOp_sparseMatrix<Storage>::shiftSolve(double *x_in, double *y_out)
 // Operations on "dgCMatrix" class, defined in Matrix package
 typedef MatOp_sparseMatrix<Eigen::ColMajor> MatOp_dgCMatrix;
 
+// Operations on "dgRMatrix" class, defined in Matrix package
+typedef MatOp_sparseMatrix<Eigen::RowMajor> MatOp_dgRMatrix;
 
-#endif // MATOPDGCMATRIX_H
+
+#endif // MATOP_SPARSEMATRIX_H

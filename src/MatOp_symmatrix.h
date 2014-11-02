@@ -1,9 +1,9 @@
-#ifndef MATOPSYMMATRIX_H
-#define MATOPSYMMATRIX_H
+#ifndef MATOP_SYMMATRIX_H
+#define MATOP_SYMMATRIX_H
 
 #include <RcppEigen.h>
+#include <R_ext/BLAS.h>  // for BLAS and F77_CALL
 #include "MatOp.h"
-#include "ARPACK.h"
 
 using Rcpp::as;
 using Eigen::MatrixXd;
@@ -15,7 +15,7 @@ typedef Eigen::Map<MatrixXd> MapMat;
 
 class MatOp_symmatrix : public MatOp
 {
-private:
+protected:
     // Pointer to the A matrix
     double *A_pntr;
     // Map mat_ to Eigen matrix
@@ -34,7 +34,8 @@ private:
     MapVec y_vec;
 public:
     // Constructor
-    MatOp_symmatrix(SEXP mat_, char uplo_ = 'L', double sigma_ = 0,
+    MatOp_symmatrix(SEXP mat_, int n_, char uplo_ = 'L',
+                    double sigma_ = 0,
                     bool needSolve_ = false);
     // y_out = A * x_in
     void prod(double *x_in, double *y_out);
@@ -47,4 +48,4 @@ public:
 };
 
 
-#endif // MATOPSYMMATRIX_H
+#endif // MATOP_SYMMATRIX_H

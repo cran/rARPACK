@@ -1,18 +1,9 @@
-#include <RcppEigen.h>
-#include <Rdefines.h>
-#include "ARPACK.h"
-#include "EigsSym.h"
+#include <Rcpp.h>
 #include "MatTypes.h"
+#include "SVDsSym.h"
+#include "SVDsGen.h"
 
-
-SEXP do_svds_sym(MatOp *op, SEXP n_scalar_r,
-                 SEXP k_scalar_r, SEXP nu_scalar_r, SEXP nv_scalar_r,
-                 SEXP params_list_r);
-
-SEXP do_svds_gen(MatOp *op, SEXP m_scalar_r, SEXP n_scalar_r,
-                 SEXP k_scalar_r, SEXP nu_scalar_r, SEXP nv_scalar_r,
-                 SEXP params_list_r);
-
+using Rcpp::as;
 
 // Main function to calculate truncated SVD for
 // dense, real, symmetric matrices
@@ -21,20 +12,22 @@ RcppExport SEXP svds_sym(SEXP A_mat_r, SEXP n_scalar_r, SEXP k_scalar_r,
                          SEXP params_list_r, SEXP mattype_scalar_r)
 {
 BEGIN_RCPP
+   
+    Rcpp::List params_svds(params_list_r);
+    
+    int n = as<int>(n_scalar_r);
+    int k = as<int>(k_scalar_r);
+    int nu = as<int>(nu_scalar_r);
+    int nv = as<int>(nv_scalar_r);
+    int ncv = as<int>(params_svds["ncv"]);
+    double tol = as<double>(params_svds["tol"]);
+    int maxitr = as<int>(params_svds["maxitr"]);
 
-    MatOp *op;
-    switch(INTEGER(mattype_scalar_r)[0])
-    {
-        case (int) DSYMATRIX:
-            op = new MatOp_dsyMatrix(A_mat_r, 0, false);
-            break;
-        default:
-            Rcpp::stop("unsupported matrix type in svds()");
-    }
-
-    SEXP res = do_svds_sym(op, n_scalar_r, k_scalar_r,
-                           nu_scalar_r, nv_scalar_r,
-                           params_list_r);
+    MatOp *op = newMatOp(A_mat_r, as<int>(mattype_scalar_r), n, n);
+    
+    SVDsSym svd(n, k, nu, nv, ncv, op, tol, maxitr);
+    svd.compute();
+    Rcpp::List res = svd.extract();
 
     delete op;
 
@@ -51,28 +44,30 @@ RcppExport SEXP svds_gen(SEXP A_mat_r, SEXP m_scalar_r, SEXP n_scalar_r,
 {
 BEGIN_RCPP
 
-    MatOp *op;
-    switch(INTEGER(mattype_scalar_r)[0])
-    {
-        case (int) MATRIX:
-            op = new MatOp_matrix(A_mat_r, 0, 0, false);
-            break;
-        case (int) DGEMATRIX:
-            op = new MatOp_dgeMatrix(A_mat_r, 0, 0, false);
-            break;
-        case (int) DGCMATRIX:
-            op = new MatOp_dgCMatrix(A_mat_r, 0, 0, false);
-            break;
-        case (int) DGRMATRIX:
-            op = new MatOp_dgRMatrix(A_mat_r, 0, 0, false);
-            break;
-        default:
-            Rcpp::stop("unsupported matrix type in svds()");
-    }
+    Rcpp::List params_svds(params_list_r);
+    
+    int m = as<int>(m_scalar_r);
+    int n = as<int>(n_scalar_r);
+    int k = as<int>(k_scalar_r);
+    int nu = as<int>(nu_scalar_r);
+    int nv = as<int>(nv_scalar_r);
+    int ncv = as<int>(params_svds["ncv"]);
+    double tol = as<double>(params_svds["tol"]);
+    int maxitr = as<int>(params_svds["maxitr"]);
 
-    SEXP res = do_svds_gen(op, m_scalar_r, n_scalar_r, k_scalar_r,
-                           nu_scalar_r, nv_scalar_r,
-                           params_list_r);
+    MatOp *op = newMatOp(A_mat_r, as<int>(mattype_scalar_r), m, n);
+    
+    Rcpp::List res;
+    if(m > n)
+    {
+        SVDsGenTall svd(m, n, k, nu, nv, ncv, op, tol, maxitr);
+        svd.compute();
+        res = svd.extract();
+    } else {
+        SVDsGenWide svd(m, n, k, nu, nv, ncv, op, tol, maxitr);
+        svd.compute();
+        res = svd.extract();
+    }
 
     delete op;
 

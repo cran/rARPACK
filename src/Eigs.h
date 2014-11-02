@@ -4,13 +4,12 @@
 #include <Rcpp.h>
 #include "MatOp.h"
 
-using std::string;
-
 
 // Need to be implemented:
 //     error()
 //     warning()
 //     aupd()
+//     eupd()
 //     extract()
 //
 class Eigs
@@ -33,7 +32,7 @@ protected:
     // "LA": largest (algebraic) eigenvalues
     // "SA": smallest (algebraic) eigenvalues
     // "BE": half of each end
-    string which;
+    std::string which;
     // Number of eigenvalues requested
     int nev;
     // Precision
@@ -70,6 +69,8 @@ protected:
     double *workd;
     int lworkl;
     double *workl;
+    // Whether to return eigenvector
+    bool retvec;
 
     // stage = 1: _aupd
     // stage = 2: _eupd
@@ -78,26 +79,36 @@ protected:
     
     // Generate initial residual vector
     void initResid();
-    // Wrapper of _aupd
+    
+    // Wrapper of _aupd and _eupd
     virtual void aupd() = 0;
-    // Check any error after update()
-    void checkUpdateError();
-    // Number of calls of _aupd(). Give an error if
-    // extract() is called but updatecount == 0
-    int updatecount;
+    virtual void eupd() = 0;
+    
+    // matrix operation
+    virtual void matOp(double *x_in, double *y_out);
+    virtual void matOp();
+    
+    // For convenience
+    Rcpp::List returnResult(SEXP values, SEXP vectors, SEXP nconv, SEXP niter)
+    {
+        return Rcpp::List::create(
+            Rcpp::Named("values") = values,
+            Rcpp::Named("vectors") = vectors,
+            Rcpp::Named("nconv") = nconv,
+            Rcpp::Named("niter") = niter
+        );
+    }
 public:
     // Constructor
     Eigs(int n_, int nev_, int ncv_, MatOp *op_,
-         const string & which_ = "LM", int workmode_ = 1,
+         const std::string & which_ = "LM", int workmode_ = 1,
          char bmat_ = 'I', double tol_ = 1e-10, int maxitr_ = 1000);
-    // _aupd step
-    void update();
-    // _eupd step, to extract results
-    virtual Rcpp::List extract(bool rvec = true) = 0;
+    // ARPACK computing
+    void compute(bool rvec);
+    // Extract results
+    virtual Rcpp::List extract() = 0;
     // Destructor
     virtual ~Eigs();
 };
 
-
 #endif // EIGS_H
-

@@ -1,5 +1,4 @@
-eigs.real_gen <- function(A, k, which, sigma, opts = list(), ...,
-                          mattype = c("matrix", "dgeMatrix", "dgCMatrix", "dgRMatrix"))
+eigs.real_gen <- function(A, k, which, sigma, opts, ..., mattype)
 {
     n = nrow(A);
     # Check whether 'A' is a square matrix
@@ -101,7 +100,7 @@ eigs.real_gen <- function(A, k, which, sigma, opts = list(), ...,
     # So we need to solve lambda
     #   lambda = sigmar + (1 \pm sqrt(1 - 4 * sigmai^2 * nu^2)) / (2 * nu)
     # Use A * x = lambda * x to choose the correct root
-    if(workmode == 3L & !sigmareal)
+    if (workmode == 3L & !sigmareal)
     {
         nu = res$values;
         sigmar = Re(sigma[1]);

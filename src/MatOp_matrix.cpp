@@ -6,21 +6,14 @@ const double MatOp_matrix::BLAS_alpha = 1.0;
 const int MatOp_matrix::BLAS_one = 1;
 const double MatOp_matrix::BLAS_zero = 0.0;
 
-void MatOp_matrix::init(int m_, int n_, double sigmar_, double sigmai_, bool needSolve_)
+void MatOp_matrix::init()
 {
-    m = m_;
-    n = n_;
-    sigmar = sigmar_;
-    sigmai = sigmai_;
-    canTprod = true;
-    canSolve = needSolve_;
-
-    if(!needSolve_)  return;
+    if(!canSolve)  return;
 
     if(m != n) return;
 
     // If sigma is real
-    if(fabs(sigmai) < 1e-17)
+    if(fabs(sigmai) < 1e-16)
     {
         // Subtract the diagonal elements by sigma, i.e., A - sigma * I
         for(int i = 0; i < n; i++)
@@ -51,20 +44,23 @@ void MatOp_matrix::init(int m_, int n_, double sigmar_, double sigmai_, bool nee
 
 MatOp_matrix::MatOp_matrix(double *data_, int m_, int n_,
                            double sigmar_, double sigmai_, bool needSolve_) :
+    MatOp(m_, n_, sigmar_, sigmai_, true, needSolve_),
     A_pntr(data_), A(data_, m_, n_),
     // x_vec and y_vec are only used in shiftSolve(),
     // where their lengths will be renewed
     x_vec(NULL, 1), y_vec(NULL, 1)
 {
-    init(m_, n_, sigmar_, sigmai_, needSolve_);
+    init();
 }
 
-MatOp_matrix::MatOp_matrix(SEXP mat_, double sigmar_, double sigmai_,
+MatOp_matrix::MatOp_matrix(SEXP mat_, int m_, int n_,
+                           double sigmar_, double sigmai_,
                            bool needSolve_) :
+    MatOp(m_, n_, sigmar_, sigmai_, true, needSolve_),
     A_pntr(REAL(mat_)), A(as<MapMat>(mat_)),
     x_vec(NULL, 1), y_vec(NULL, 1)
 {
-    init(A.rows(), A.cols(), sigmar_, sigmai_, needSolve_);
+    init();
 }
 
 void MatOp_matrix::prod(double *x_in, double *y_out)
@@ -88,9 +84,9 @@ void MatOp_matrix::shiftSolve(double *x_in, double *y_out)
     if(m != n)
         Rcpp::stop("matrix must be square");
     if(!canSolve)
-        Rcpp::stop("this matrix doesn't support solving linear equation");
+        Rcpp::stop("this matrix does not support solving linear equation");
 
-    if(fabs(sigmai) < 1e-17)
+    if(fabs(sigmai) < 1e-16)
     {
         new (&x_vec) MapVec(x_in, n);
         new (&y_vec) MapVec(y_out, n);

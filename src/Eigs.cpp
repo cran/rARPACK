@@ -1,29 +1,21 @@
 #include "Eigs.h"
 
+using std::string;
+
 Eigs::Eigs(int n_, int nev_, int ncv_, MatOp *op_,
            const string & which_, int workmode_,
-           char bmat_, double tol_, int maxitr_)
+           char bmat_, double tol_, int maxitr_) :
+    bmat(bmat_), n(n_), which(which_), nev(nev_), tol(tol_),
+    ncv(ncv_), maxitr(maxitr_),
+    workmode(workmode_), op(op_),
+    ido(0), info(0), ierr(0), retvec(false)
 {
-    n = n_;
-    nev = nev_;
-    ncv = ncv_;
-    op = op_;
-    which = which_;
-    workmode = workmode_;
-    bmat = bmat_;
-    tol = tol_;
-    maxitr = maxitr_;
-
-    ido = 0;
-    info = 0;
-    ierr = 0;
-    updatecount = 0;
-
     for(int i = 0; i < 11; i++)
         iparam[i] = 0;
 
     iparam[1 - 1] = 1;
     iparam[3 - 1] = maxitr;
+    iparam[4 - 1] = 1;
     iparam[7 - 1] = workmode;
 
     for(int i = 0; i < 14; i++)
@@ -41,17 +33,38 @@ void Eigs::initResid()
     // Create initial residual vector
     // info = 1 means using the residual vector we provide
     info = 1;
-    double *initcoef = new double[n];
-    srand(0);
-    for(int i = 0; i < n; i++)
-        initcoef[i] = rand() / (RAND_MAX + 1.0) - 0.5;
-
-    // resid = A * initcoef
-    op->prod(initcoef, resid);
-    delete [] initcoef;
+    #include "rands.h"
+    if(n <= rands_len)
+    {
+        matOp(rands, resid);
+    } else {
+        double *initcoef = new double[n];
+        double *coef_pntr = initcoef;
+        for(int i = 0; i < n / rands_len; i++, coef_pntr += rands_len)
+        {
+            std::copy(rands, rands + rands_len, coef_pntr);
+        }
+        std::copy(rands, rands + n % rands_len, coef_pntr);
+        // resid = OP(initcoef)
+        matOp(initcoef, resid);
+        delete [] initcoef;
+    }
 }
 
-void Eigs::update()
+void Eigs::matOp(double *x_in, double *y_out)
+{
+    if (workmode == 3)  // Shift-and-invert mode
+        op->shiftSolve(x_in, y_out);
+    else                // Regular mode
+        op->prod(x_in, y_out);
+}
+
+void Eigs::matOp()
+{
+    matOp(&workd[ipntr[0] - 1], &workd[ipntr[1] - 1]);
+}
+
+void Eigs::compute(bool rvec)
 {
     initResid();
 
@@ -62,28 +75,23 @@ void Eigs::update()
         {
             case -1:
             case 1:
-                // Shift-and-invert
-                if (workmode == 3)
-                    op->shiftSolve(&workd[ipntr[0] - 1], &workd[ipntr[1] - 1]);
-                else
-                    op->prod(&workd[ipntr[0] - 1], &workd[ipntr[1] - 1]);
+                matOp();
                 break;
             default:
                 break;
         }
-        updatecount++;
     }
-}
-
-void Eigs::checkUpdateError()
-{
-    // Ensure that update() is called at least once
-    if (updatecount < 1)
-        Rcpp::stop("need to call update() first");
-
+    
     // info > 0 means warning, < 0 means error
     if (info > 0)  warning(1, info);
     if (info < 0)  error(1, info);
+    
+    retvec = rvec;
+    eupd();
+    
+    // ierr > 0 means warning, < 0 means error
+    if (ierr > 0) warning(2, ierr);
+    if (ierr < 0) error(2, ierr);
 }
 
 Eigs::~Eigs()
@@ -91,4 +99,3 @@ Eigs::~Eigs()
     delete [] workd;
     delete [] resid;
 }
-
