@@ -30,11 +30,13 @@
 ##' \code{eigs_sym()} assumes the matrix is symmetric,
 ##' and only the lower triangle (or upper triangle, which is
 ##' controlled by the argument \code{lower}) is used for
-##' computation, which in some cases reduces the workload.
-##' Notice that \code{eigs_sym()} only applies to "ordinary" matrix,
-##' i.e., of class "matrix". If you want to calculate
-##' eigenvalues/vectors of matrix of "dsyMatrix" class, use
-##' \code{eigs()} instead.
+##' computation, which guarantees that the eigenvalues and eigenvectors are
+##' real, and in some cases reduces the workload. One exception is when
+##' \code{A} is a function, in which case the user is responsible for the
+##' symmetry of the operator.
+##' 
+##' \code{eigs_sym()} supports "matrix", "dgeMatrix", "dgCMatrix", "dgRMatrix"
+##' and "function" typed matrices.
 ##' 
 ##' @param A The matrix whose eigenvalues/vectors are to be computed.
 ##'          It can also be a function which receives a vector \eqn{x}
@@ -140,7 +142,8 @@
 ##' \item{values}{Computed eigenvalues.}
 ##' \item{vectors}{Computed eigenvectors. \code{vectors[, j]} corresponds to \code{values[j]}.}
 ##' \item{nconv}{Number of converged eigenvalues.}
-##' \item{niter}{Number of iterations in the computation.}
+##' \item{niter}{Number of iterations used in the computation.}
+##' \item{nops}{Number of matrix operations used in the computation.}
 ##' @author Yixuan Qiu \url{http://statr.me}
 ##' 
 ##'         Jiali Mei \email{vermouthmjl@@gmail.com}
@@ -205,9 +208,10 @@ eigs.matrix <- function(A, k, which = "LM", sigma = NULL,
     {
         if(which == "LR")  which = "LA"
         if(which == "SR")  which = "SA"
-        eigs.real_sym(A, k, which, sigma, opts, ..., mattype = "symmatrix")
+        eigs.real_sym(A, nrow(A), k, which, sigma, opts, ..., mattype = "sym_matrix",
+                      extra_args = list(use_lower = TRUE))
     } else {
-        eigs.real_gen(A, k, which, sigma, opts, ..., mattype = "matrix")
+        eigs.real_gen(A, nrow(A), k, which, sigma, opts, ..., mattype = "matrix")
     }
 }
 
@@ -222,9 +226,10 @@ eigs.dgeMatrix <- function(A, k, which = "LM", sigma = NULL,
     {
         if(which == "LR")  which = "LA"
         if(which == "SR")  which = "SA"
-        eigs.real_sym(A, k, which, sigma, opts, ..., mattype = "dgeMatrix")
+        eigs.real_sym(A, nrow(A), k, which, sigma, opts, ..., mattype = "sym_dgeMatrix",
+                      extra_args = list(use_lower = TRUE))
     } else {
-        eigs.real_gen(A, k, which, sigma, opts, ..., mattype = "dgeMatrix")
+        eigs.real_gen(A, nrow(A), k, which, sigma, opts, ..., mattype = "dgeMatrix")
     }
 }
 
@@ -239,9 +244,10 @@ eigs.dgCMatrix <- function(A, k, which = "LM", sigma = NULL,
     {
         if(which == "LR")  which = "LA"
         if(which == "SR")  which = "SA"
-        eigs.real_sym(A, k, which, sigma, opts, ..., mattype = "dgCMatrix")
+        eigs.real_sym(A, nrow(A), k, which, sigma, opts, ..., mattype = "sym_dgCMatrix",
+                      extra_args = list(use_lower = TRUE))
     } else {
-        eigs.real_gen(A, k, which, sigma, opts, ..., mattype = "dgCMatrix")
+        eigs.real_gen(A, nrow(A), k, which, sigma, opts, ..., mattype = "dgCMatrix")
     }
 }
 
@@ -250,42 +256,84 @@ eigs.dgCMatrix <- function(A, k, which = "LM", sigma = NULL,
 ## isSymmetric() does not support dgRMatrix
 eigs.dgRMatrix <- function(A, k, which = "LM", sigma = NULL,
                            opts = list(), ...)
-    eigs.real_gen(A, k, which, sigma, opts, ...,
-                  mattype = "dgRMatrix")
+    eigs.real_gen(A, nrow(A), k, which, sigma, opts, ..., mattype = "dgRMatrix")
 
 ##' @rdname eigs
 ##' @export
 eigs.dsyMatrix <- function(A, k, which = "LM", sigma = NULL,
                            opts = list(), ...)
-    eigs.real_sym(A, k, which, sigma, opts, ...,
-                  mattype = "dsyMatrix", lower = (A@uplo == "L"))
+    eigs.real_sym(A, nrow(A), k, which, sigma, opts, ..., mattype = "dsyMatrix",
+                  extra_args = list(use_lower = (A@uplo == "L")))
 
 ##' @rdname eigs
 ##' @export
 eigs.function <- function(A, k, which = "LM", sigma = NULL,
-                          opts = list(), ..., n = NULL, args = NULL)
-    eigs.fun(A, k, which, sigma, opts, ..., mattype = "function",
-             n = n, args = args)
+                          opts = list(), ...,
+                          n = NULL, args = NULL)
+    eigs.real_gen(A, as.integer(n), k, which, sigma, opts, ..., mattype = "function",
+                  extra_args = list(fun_args = args))
 
 
 
 ##' @rdname eigs
 ##' @usage eigs_sym(A, k, which = "LM", sigma = NULL, opts = list(),
-##'   ..., lower = TRUE)
+##'    lower = TRUE, ...)
 ##' @export
-eigs_sym <- function(A, k, which = "LM", sigma = NULL, opts = list(), ...,
-                     lower = TRUE)
+eigs_sym <- function(A, k, which = "LM", sigma = NULL, opts = list(),
+                     lower = TRUE, ...)
+    UseMethod("eigs_sym")
+
+eigs_sym.matrix <- function(A, k, which = "LM", sigma = NULL, opts = list(),
+                            lower = TRUE, ...)
 {
-    if(is.matrix(A))
-    {
-        eigs.real_sym(A, k, which, sigma, opts, ...,
-                      mattype = "matrix", lower = lower)
-    } else {
-        stop("unsupported matrix type")
-    }
+    eigs.real_sym(A, nrow(A), k, which, sigma, opts, ..., mattype = "sym_matrix",
+                  extra_args = list(use_lower = as.logical(lower)))
 }
 
+eigs_sym.dgeMatrix <- function(A, k, which = "LM", sigma = NULL, opts = list(),
+                               lower = TRUE, ...)
+{
+    eigs.real_sym(A, nrow(A), k, which, sigma, opts, ..., mattype = "sym_dgeMatrix",
+                  extra_args = list(use_lower = as.logical(lower)))
+}
+
+eigs_sym.dgCMatrix <- function(A, k, which = "LM", sigma = NULL, opts = list(),
+                               lower = TRUE, ...)
+{
+    eigs.real_sym(A, nrow(A), k, which, sigma, opts, ..., mattype = "sym_dgCMatrix",
+                  extra_args = list(use_lower = as.logical(lower)))
+}
+
+eigs_sym.dgRMatrix <- function(A, k, which = "LM", sigma = NULL, opts = list(),
+                               lower = TRUE, ...)
+{
+    eigs.real_sym(A, nrow(A), k, which, sigma, opts, ..., mattype = "sym_dgRMatrix",
+                  extra_args = list(use_lower = as.logical(lower)))
+}
+
+##' @rdname eigs
+##' @export
+eigs_sym.function <- function(A, k, which = "LM", sigma = NULL, opts = list(),
+                              lower = TRUE, ..., n = NULL, args = NULL)
+{
+    eigs.real_sym(A, as.integer(n), k, which, sigma, opts, ..., mattype = "function",
+                  extra_args = list(fun_args = args))
+}
+
+
+
+## Some enumerations
+
 # Matrix types
-MATTYPES = c("matrix" = 0L, "symmatrix" = 1L, "dgeMatrix" = 2L,
-             "dsyMatrix" = 3L, "dgCMatrix" = 4L, "dgRMatrix" = 5L,
-             "function" = 6L)
+MAT_TYPE = c("matrix"    = 0L, "sym_matrix"    = 1L,
+             "dgeMatrix" = 2L, "sym_dgeMatrix" = 3L,
+             "dsyMatrix" = 4L,
+             "dgCMatrix" = 5L, "sym_dgCMatrix" = 6L,
+             "dgRMatrix" = 7L, "sym_dgRMatrix" = 8L,
+             "function"  = 9L)
+# Solver types
+SOLVER_TYPE = c("regular" = 0L, "real_shift" = 1L, "complex_shift" = 2L)
+
+# Selection rules
+EIGS_RULE = c("LM" = 0L, "LR" = 1L, "LI" = 2L, "LA" = 3L, "SM" = 4L,
+              "SR" = 5L, "SI" = 6L, "SA" = 7L, "BE" = 8L)
