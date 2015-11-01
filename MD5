@@ -1,4 +1,4 @@
-901ac6b05d1e311f40063b671af9fa03 *DESCRIPTION
+e755c731f08c46402d7de0aa0f2925d6 *DESCRIPTION
 f4b54c38d521cfc5013a244398ae133f *LICENSE
 3547c39d56f3694d70b8d26bca7351a7 *NAMESPACE
 ebfc05c9d55cacffcd7f4800eed99365 *R/00_eigs.R
@@ -11,7 +11,7 @@ e675910b9fa2c6d232b554ba703ae820 *R/zzz.R
 5b58bf56397fbe3c64a9d9aa6e7abeec *README.md
 cd5b3eabdbbd98c7c6d130474124d880 *inst/AUTHORS
 7972f9c69e3c43150686d0d84cd58a0c *inst/COPYRIGHTS
-c5015b84bb3ee6de048d4376b1e037e8 *inst/NEWS.Rd
+5c6d762ec3c35f802e87af39f611a4b3 *inst/NEWS.Rd
 41bfb060996655298db50bc9cd2bbd39 *inst/examples/eigs.R
 351ce6a3e25e0a0e5e3169877a9d1f85 *inst/examples/svds.R
 3ecef79917aed6eda08600b73ac75640 *inst/include/ArpackC.h
@@ -63,4 +63,4 @@ d406297cda5f7acbe4b6d7bb1404d396 *src/c_interface.h
 b61d1c9708a9f0c4e2bcf1d42c1ad297 *src/matops.cpp
 2aa510a087ae5be2539fa4b4d931abbd *src/matops.h
 d5ec338b0997836003b20765c85ae833 *src/rands.h
-68a8fc977d4da5dc19a3f9ec55b64e6b *src/svds.cpp
+29955d51ba9064fadea7a64a86f3f8d0 *src/svds.cpp
