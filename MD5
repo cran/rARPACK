@@ -1,4 +1,4 @@
-e755c731f08c46402d7de0aa0f2925d6 *DESCRIPTION
+b7d6d42664252bb65b67201bc23c9543 *DESCRIPTION
 f4b54c38d521cfc5013a244398ae133f *LICENSE
 3547c39d56f3694d70b8d26bca7351a7 *NAMESPACE
 ebfc05c9d55cacffcd7f4800eed99365 *R/00_eigs.R
@@ -11,7 +11,7 @@ e675910b9fa2c6d232b554ba703ae820 *R/zzz.R
 5b58bf56397fbe3c64a9d9aa6e7abeec *README.md
 cd5b3eabdbbd98c7c6d130474124d880 *inst/AUTHORS
 7972f9c69e3c43150686d0d84cd58a0c *inst/COPYRIGHTS
-5c6d762ec3c35f802e87af39f611a4b3 *inst/NEWS.Rd
+aa4c2c8401287a88c62c8037020f88b4 *inst/NEWS.Rd
 41bfb060996655298db50bc9cd2bbd39 *inst/examples/eigs.R
 351ce6a3e25e0a0e5e3169877a9d1f85 *inst/examples/svds.R
 3ecef79917aed6eda08600b73ac75640 *inst/include/ArpackC.h
@@ -39,7 +39,7 @@ bfd6b63364f6fafb4ce44fa457a11f8f *inst/include/RMatOp/RealShift_sym_dgeMatrix.h
 e9e8bdda26ec2f35f06282f4ca2f5d03 *inst/include/RMatOp/RealShift_sym_matrix.h
 f125fb0776e61101f42da30e43b8f207 *inst/include/RMatOp/RealShift_sym_sparseMatrix.h
 20a7d8ce0ba8f58ea8c514e1bc3da6af *inst/include/RMatOp/SVDOp.h
-2f15c68bf9fdb6656bd6b17184af1d50 *inst/include/Spectra/GenEigsSolver.h
+6b27315ea1e395aa8662ac9269bdd6aa *inst/include/Spectra/GenEigsSolver.h
 56a17112ee7bf4e6aa5f4822d5886cb8 *inst/include/Spectra/LinAlg/DoubleShiftQR.h
 ebd2a3c7ac406434693f867591befa92 *inst/include/Spectra/LinAlg/TridiagEigen.h
 352b34eebf84dc984eb8cc91be283795 *inst/include/Spectra/LinAlg/UpperHessenbergEigen.h
@@ -50,7 +50,7 @@ eef4c00a7a9e046c523765e298b2fa49 *inst/include/Spectra/MatOp/DenseGenRealShiftSo
 79e7e75ad50a5472ac7c57e02eb38721 *inst/include/Spectra/MatOp/DenseSymShiftSolve.h
 8570071a56ab76127dd1ff1de2aa131b *inst/include/Spectra/MatOp/SparseGenMatProd.h
 8876b578dbf4cc9931f03839406b5010 *inst/include/Spectra/SelectionRule.h
-cbeb2e7f1db1289b25876e239b87cdf1 *inst/include/Spectra/SymEigsSolver.h
+a77532e7e53bd2d7d71af7dcea171689 *inst/include/Spectra/SymEigsSolver.h
 b92f62fd13530ff436676910a084787a *inst/include/SymEigs.h
 f135ffd562982635ef617fa295cdd69c *man/eigs.Rd
 785bfdcab6f655af20de7d6a390e1e9d *man/svds.Rd

@@ -1,8 +1,8 @@
 Package: rARPACK
 Type: Package
 Title: Solvers for Large Scale Eigenvalue and SVD Problems
-Version: 0.8-1
-Date: 2015-10-31
+Version: 0.9-0
+Date: 2015-11-17
 Author: Yixuan Qiu, Jiali Mei and authors of the ARPACK library. See file
     AUTHORS for details.
 Maintainer: Yixuan Qiu <yixuan.qiu@cos.name>
@@ -25,6 +25,6 @@ Imports: Matrix (>= 1.1-0), Rcpp (>= 0.11.5)
 LinkingTo: Rcpp, RcppEigen (>= 0.3.2.2.0)
 RoxygenNote: 5.0.0
 NeedsCompilation: yes
-Packaged: 2015-10-31 19:23:48 UTC; qyx
+Packaged: 2015-11-17 15:15:51 UTC; qyx
 Repository: CRAN
-Date/Publication: 2015-11-01 00:15:12
+Date/Publication: 2015-11-18 09:31:40
